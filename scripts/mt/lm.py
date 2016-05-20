@@ -1,4 +1,5 @@
 import os
+import math
 from multiprocessing import cpu_count
 
 import scripts
@@ -80,7 +81,7 @@ class KenLM(LanguageModel):
             # Create language model in ARPA format
             arpa_file = os.path.join(working_dir, 'lm.arpa')
             arpa_command = [self._lmplz_bin, '--discount_fallback', '-o', str(self._order),
-                            '-S', str(self.get_mem_percent()) + '%', '-T', working_dir]
+                            '-S', self.get_mem_size(merged_corpus), '-T', working_dir]
             if self._order > 2 and self.prune:
                 arpa_command += ['--prune', '0', '0', '1']
 
@@ -96,17 +97,28 @@ class KenLM(LanguageModel):
                 log.close()
 
     @staticmethod
-    def get_mem_percent():
-        """:returns percentage of MemTotal (hardware memory) to use in `lmplz`."""
+    def get_mem_size(merged_corpus):
+        """:returns MemTotal (hardware memory) to use in `lmplz`."""
+
         # Simple heuristic: use 80% of *available* memory (instead of MemTotal as is the lmplz default) - avoids
         # crashing on machines with other jobs running.
         # This may evict some disk caches (is not too nice to other programs using mmapped
         # files unless you lower the 80%).
-
         mi = meminfo()
         total = float(mi['MemTotal'])
         available = float(mi['MemFree'] + mi['Buffers'] + mi['Cached'])
-        return int(80.0 * available / total)
+        max_use_percent = 80.0 * available / total
+
+        # for tiny files, we can speed things up by not allocating as much memory (less SYS time in managing RAM)
+        # so, use text file size as a very rough heuristic for lmplz memory size.
+        corpus_kb = os.path.getsize(merged_corpus) / 2**10
+        # probing binary LM size varies roughly from 1.7-1.1x the raw corpus size (tiny-big corpora)
+        # my educated guess is that 5x the RAM should be plenty to store counts and ngrams.
+        # this is capped by max_use_percent for large files.
+        use_percent = min(max_use_percent, 5.0 * corpus_kb / total)
+
+        # note for later: lmplz also takes absolute RAM numbers (kB) and 'k', 'M', 'G', etc. suffixes
+        return str(max(1, int(math.ceil(use_percent)))) + '%'
 
     def get_iniline(self):
         return 'factor=0 order={order} path={model}'.format(order=self._order, model=self.get_relpath(self._model))
