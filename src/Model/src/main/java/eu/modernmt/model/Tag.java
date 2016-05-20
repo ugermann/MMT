@@ -5,14 +5,17 @@ import java.util.regex.Pattern;
 
 public class Tag extends Token implements Comparable<Tag> {
 
-    private static final String TAG_NAME = "(\\p{Alpha}|_|:)(\\p{Alpha}|\\p{Digit}|\\.|-|_|:|)*";
+    private static final String TAG_NAME = "(?:\\p{Alpha}|_|:)(?:\\p{Alpha}|\\p{Digit}|\\.|-|_|:|)*";
+    private static final String TAG_ATTRIBUTE = "[^>]*";
+    private static final String TAG_ATTRIBUTE_DTD = "[^>]*[^/]";
 
     private static final Pattern TagNameRegex = Pattern.compile(TAG_NAME);
+
     public static final Pattern TagRegex = Pattern.compile(
-            "(<(" + TAG_NAME + ")[^>]*/?>)|" +
-                    "(<!(" + TAG_NAME + ")[^>]*[^/]>)|" +
-                    "(</(" + TAG_NAME + ")[^>]*>)|" +
-                    "(<!--)|(-->)");
+            "(?:<(" + TAG_NAME + ")\\s*(" + TAG_ATTRIBUTE + ")/?>)|" +
+                    "(?:<!(" + TAG_NAME + ")\\s*(" + TAG_ATTRIBUTE_DTD + ")>)|" +
+                    "(?:</(" + TAG_NAME + ")\\s*(" + TAG_ATTRIBUTE + ")>)|" +
+                    "(?:<!--)|(?:-->)");
 
     public enum Type {
         OPENING_TAG,
@@ -26,9 +29,9 @@ public class Tag extends Token implements Comparable<Tag> {
 
     public static Tag fromText(String text, boolean leftSpace, String rightSpace, int position) {
         if ("<!--".equals(text)) {
-            return new Tag("--", text, leftSpace, rightSpace, position, Type.OPENING_TAG, false);
+            return new Tag("--", null, text, leftSpace, rightSpace, position, Type.OPENING_TAG, false);
         } else if ("-->".equals(text)) {
-            return new Tag("--", text, leftSpace, rightSpace, position, Type.CLOSING_TAG, false);
+            return new Tag("--", null, text, leftSpace, rightSpace, position, Type.CLOSING_TAG, false);
         }
 
         int length = text.length();
@@ -54,20 +57,30 @@ public class Tag extends Token implements Comparable<Tag> {
             type = Type.OPENING_TAG;
         }
 
-        Matcher matcher = TagNameRegex.matcher(text);
-        if (!matcher.find(nameStartPosition))
+        Matcher matcher = TagRegex.matcher(text);
+        if (!matcher.find())
             throw new IllegalArgumentException("Invalid tag: " + text);
-        name = matcher.group();
+        name = matcher.group(1);
+        String attributes = null;
+        System.out.println(matcher.group());
+        System.out.println(matcher.group(0));
+        System.out.println(matcher.group(1));
+        System.out.println(matcher.groupCount());
+        if(matcher.groupCount() > 1){
+            attributes = matcher.group(2).trim();
+        }
 
-        return new Tag(name, text, leftSpace, rightSpace, position, type, dtd);
+
+        return new Tag(name, attributes, text, leftSpace, rightSpace, position, type, dtd);
     }
 
     public static Tag fromTag(Tag other) {
-        return new Tag(other.name, other.text, other.leftSpace, other.rightSpace, other.position, other.type, other.dtd);
+        return new Tag(other.name, other.attributes, other.text, other.leftSpace, other.rightSpace, other.position, other.type, other.dtd);
     }
 
     protected final Type type; /* tag type */
     protected final String name; /* tag name */
+    protected final String attributes; /* tag attributes */
     protected boolean leftSpace; /* true if there is at least one space on the left of the tag*/
     /* position of the word after which the tag is placed; indexes of words start from 0
     e.g. a tag at the beginning of the sentence has position=0
@@ -76,12 +89,13 @@ public class Tag extends Token implements Comparable<Tag> {
     protected int position;
     protected boolean dtd;
 
-    protected Tag(String name, String text, boolean leftSpace, String rightSpace, int position, Type type, boolean dtd) {
+    protected Tag(String name, String attributes, String text, boolean leftSpace, String rightSpace, int position, Type type, boolean dtd) {
         super(text, text, rightSpace);
         this.leftSpace = leftSpace;
         this.position = position;
         this.type = type;
         this.name = name;
+        this.attributes = attributes;
         this.dtd = dtd;
     }
 
@@ -103,6 +117,10 @@ public class Tag extends Token implements Comparable<Tag> {
 
     public String getName() {
         return name;
+    }
+
+    public String getAttributes() {
+        return attributes;
     }
 
     public void setLeftSpace(boolean leftSpace) {
@@ -165,6 +183,10 @@ public class Tag extends Token implements Comparable<Tag> {
 
     }
 
+    public boolean sameTag(Tag otherTag) {
+        return this.type.equals(otherTag.type) && this.name.equals(otherTag.name);
+    }
+
     @Override
     public int hashCode() {
         int result = super.hashCode();
@@ -175,5 +197,12 @@ public class Tag extends Token implements Comparable<Tag> {
         result = 31 * result + (dtd ? 1 : 0);
         return result;
     }
+
+    public static void main(String []a){
+        Tag tag = Tag.fromText("<!ELEMENT note (to,from,heading,body)>");
+        System.out.println(tag.getName());
+        System.out.println(tag.getAttributes());
+    }
+
 }
 

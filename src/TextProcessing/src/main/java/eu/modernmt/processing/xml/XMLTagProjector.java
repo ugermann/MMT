@@ -3,6 +3,7 @@ package eu.modernmt.processing.xml;
 import eu.modernmt.model.*;
 import eu.modernmt.processing.framework.ProcessingException;
 import eu.modernmt.processing.framework.TextProcessor;
+import eu.modernmt.processing.xml.tag.*;
 
 import java.io.IOException;
 import java.util.*;
@@ -11,6 +12,21 @@ import java.util.*;
  * Created by lucamastrostefano on 4/04/16.
  */
 public class XMLTagProjector implements TextProcessor<Translation, Void> {
+
+    public static class XMLTagProjectorProcessor implements TextProcessor<Translation, Void> {
+
+        @Override
+        public Void call(Translation translation, Map<String, Object> metadata) throws ProcessingException {
+            projectTags(translation);
+            return null;
+        }
+
+        @Override
+        public void close() {
+            // Nothing to do
+        }
+    }
+
 
     private static class ExtendedTag implements Comparable<ExtendedTag> {
 
@@ -52,12 +68,40 @@ public class XMLTagProjector implements TextProcessor<Translation, Void> {
 
     @Override
     public Void call(Translation translation, Map<String, Object> metadata) throws ProcessingException {
+        projectTags(translation);
+        return null;
+    }
+
+    public static void projectTags(Translation translation) {
+        projectTags(translation, null);
+    }
+
+    public static void projectTags(Translation translation, Translation hint) {
+        Translation original_translation = translation;
         Sentence source = translation.getSource();
+        boolean useHint = (hint != null && hint.hasWords() && hint.hasTags() && hint.hasAlignment());
         if (source.hasTags()) {
             if (source.hasWords()) {
                 if (translation.hasAlignment()) {
-                    mapTags(translation);
-                    simpleSpaceAnalysis(translation);
+                    if (useHint) {
+                        //Allineo gli id dei tag nell'hint che € |tag_hint| && |tag_originali|
+                        //I tag si allineano cercando nella traduzione quello più vicino alle parole allineante vicine a quello della source.
+
+                        //Rimuovo dall'hint i tag non allineati con la source originale
+
+                        //Sistemo nella source originale i tag (e spazi) € (|tag_hint| && |tag_originali| - |tag_originali|)
+
+                        //Mappo dall source i tag (e spazi) € |tag_originali| - |tag_hint|
+
+                        //Creo un oggetto translatoin "hint -> traduzione" e calcolo spazi e tag su questa
+                        //translation = new Translation(translation.getWords(), hint, alignments);
+
+                        //unisco i tag mappati: |tag_hint| && |tag_originali| from hint  U  |tag_originali| - |tag_hint| dall'original
+
+                    } else {
+                        computeProjection(translation);
+                        simpleSpaceAnalysis(translation);
+                    }
                 }
             } else {
                 Tag[] tags = source.getTags();
@@ -65,10 +109,9 @@ public class XMLTagProjector implements TextProcessor<Translation, Void> {
                 translation.setTags(copy);
             }
         }
-        return null;
     }
 
-    public static List<ExtendedTag> mapTags(Translation translation) {
+    private static List<ExtendedTag> computeProjection(Translation translation) {
         Tag[] sourceTags = translation.getSource().getTags();
         Token[] sourceWord = translation.getSource().getWords();
         Token[] targetTokens = translation.getWords();
@@ -286,7 +329,196 @@ public class XMLTagProjector implements TextProcessor<Translation, Void> {
         if (previousToken != null) {
             previousToken.setRightSpace(null);
         }
+    }
 
+    private static void adjustHintTags(Translation translation, Translation hint) {
+        Tag[] sourceTags = translation.getSource().getTags();
+        Tag[] hintTranslationTags = hint.getTags();
+
+        double[][] source2sourceScores = alignSourceSourceTags(translation.getSource(), hint.getSource());
+        Translation original2hint = new Translation(translation.getWords(), sourceTags, hint, null);
+        double[][] source2targetScores = alignTranslationTags(hint);
+
+        int[] source2sourceAlignments = computeBestAlignments(source2sourceScores);
+        int[] hintTagsAlignments = computeBestAlignments(source2targetScores);
+        int[] translation2hintAlignments = computePivotedAlignments(source2sourceAlignments, hintTagsAlignments);
+
+        List<Tag> filteredTags = new ArrayList<>(translation2hintAlignments.length);
+        for (int sourceIndex = 0; sourceIndex < translation2hintAlignments.length; sourceIndex++) {
+            int hintTagIndex = translation2hintAlignments[sourceIndex];
+            if (hintTagIndex != -1) {
+                Tag hintTag = hintTranslationTags[hintTagIndex];
+                Tag newTag = Tag.fromText(sourceTags[sourceIndex].getText(),
+                        hintTag.hasLeftSpace(), hintTag.getRightSpace(), hintTag.getPosition());
+                filteredTags.add(newTag);
+            }
+        }
+
+        Tag[] tags = new Tag[filteredTags.size()];
+        filteredTags.toArray(tags);
+        hint.setTags(tags);
+    }
+
+    private static double[][] alignTags(Translation translation, Map<ProbabilisticTagAligner, Double> tagAligners2weights) {
+        Tag[] sourceTags = translation.getSource().getTags();
+        Tag[] targetTags = translation.getTags();
+        double[][] sourceTag2possibleAlignments = new double[sourceTags.length][targetTags.length];
+
+        for (ProbabilisticTagAligner tagAligner : tagAligners2weights.keySet()) {
+            tagAligner.initialize();
+        }
+
+        int targetTranslationTagsCount = targetTags.length;
+        double[] tagAlignerScores = new double[targetTranslationTagsCount];
+        for (int sourceTagIndex = 0; sourceTagIndex < sourceTags.length; sourceTagIndex++) {
+            double[] scores = new double[targetTranslationTagsCount];
+            for (Map.Entry<ProbabilisticTagAligner, Double> tagAligner2weight : tagAligners2weights.entrySet()) {
+                ProbabilisticTagAligner tagAligner = tagAligner2weight.getKey();
+                double weight = tagAligner2weight.getValue();
+                tagAligner.computeNormalizedTagsScores(sourceTagIndex, tagAlignerScores);
+                for (int targetTagIndex = 0; targetTagIndex < targetTranslationTagsCount; targetTagIndex++) {
+                    if (Double.isInfinite(weight)) {
+                        if (tagAlignerScores[targetTagIndex] <= 0) {
+                            scores[targetTagIndex] = 0;
+                        }
+                    } else {
+                        scores[targetTagIndex] *= Math.pow(tagAlignerScores[targetTagIndex], 1 / weight);
+                    }
+                }
+            }
+            sourceTag2possibleAlignments[sourceTagIndex] = scores;
+        }
+
+        for (double[] d : sourceTag2possibleAlignments) {
+            System.out.println(Arrays.toString(d));
+        }
+        return sourceTag2possibleAlignments;
+    }
+
+    private static double[][] alignSourceSourceTags(Sentence sourceSentence, Sentence targetSentence) {
+        Translation translation = new Translation(sourceSentence.getWords(), sourceSentence.getTags(), targetSentence, null);
+        Map<ProbabilisticTagAligner, Double> tagAligners2weights = new HashMap<>();
+        tagAligners2weights.put(new TypeTagAligner(translation), 1D);
+        tagAligners2weights.put(new ContextTagAligner(translation), Double.POSITIVE_INFINITY);
+        tagAligners2weights.put(new AbsolutePositionTagAligner(translation), 1D);
+        tagAligners2weights.put(new RelativePositionTagAligner(translation), 1D);
+        tagAligners2weights.put(new NameTagAligner(translation), 1D);
+        tagAligners2weights.put(new AttributesTagAligner(translation), 0.5D);
+        return alignTags(translation, tagAligners2weights);
+    }
+
+    private static double[][] alignTranslationTags(Translation translation) {
+        Map<ProbabilisticTagAligner, Double> tagAligners2weights = new HashMap<>();
+        tagAligners2weights.put(new ProjectedTagAligner(translation), 1D);
+        return alignTags(translation, tagAligners2weights);
+    }
+
+    private static int[] computePivotedAlignments(int[] firstAlignments, int[] secondAlignments) {
+        int[] pivotedAlignments = new int[firstAlignments.length];
+        for (int originalSourceIndex = 0; originalSourceIndex < firstAlignments.length; originalSourceIndex++) {
+            int firstAligned = firstAlignments[originalSourceIndex];
+            pivotedAlignments[originalSourceIndex] = secondAlignments[firstAlignments[originalSourceIndex]];
+        }
+        return pivotedAlignments;
+    }
+
+    private static int[] computeBestAlignments(double[][] source2targetScores) {
+        //gli score non si devono combinare, source2target è fissato. non dipende dagli altri.
+        return null;
+    }
+
+    private static Map<Integer, Integer> alignTags_old(Translation translation) {
+        Sentence sentence = translation.getSource();
+        Token[] sentenceTokens = new Token[sentence.length()];
+        int pos = 0;
+        for (Token t : sentence) {
+            sentenceTokens[pos++] = t;
+        }
+
+        Map<Integer, Integer> wordPosition2tokenPosition = new HashMap<>(translation.getWords().length);
+        Token[] translationTokens = new Token[translation.length()];
+        int numberOfTags = pos = 0;
+        for (Token t : translation) {
+            if (t instanceof Tag) {
+                numberOfTags++;
+            } else {
+                wordPosition2tokenPosition.put(pos - numberOfTags, pos);
+            }
+            translationTokens[pos++] = t;
+        }
+
+        Map<Integer, Integer> tagIndex2tagIndex = new HashMap<>(sentence.getTags().length);
+        int[][] alignments = translation.getAlignment();
+        Arrays.sort(alignments, (a1, a2) -> {
+            int c = a1[0] - a2[0];
+            if (c == 0) {
+                c = a1[1] - a2[1];
+            }
+            return c;
+        });
+
+        int lastAlignIndex = 0;
+        int positionPrevWord = 0;
+        int positionNextWord = 0;
+        Map<Integer, Double[]> sourceTag2possibleAlignments = new HashMap<>();
+        boolean wordFound = false;
+        List<Tag> tagToBeAligned = new ArrayList<>();
+        for (pos = 0; pos < sentenceTokens.length; pos++) {
+            Token token = sentenceTokens[pos];
+            if (token instanceof Tag) {
+                if (wordFound) {
+                    positionNextWord = -1;
+                    if (!tagToBeAligned.isEmpty()) {
+                        for (Tag tag : tagToBeAligned) {
+                            //alignTag();
+                        }
+                    }
+                    wordFound = false;
+                }
+                tagToBeAligned.add((Tag) token);
+            } else {
+                if (!wordFound) {
+                    wordFound = true;
+                }
+                if (tagToBeAligned.isEmpty()) {
+                    positionPrevWord = pos;
+                } else {
+                    positionNextWord = pos;
+                    for (Tag tag : tagToBeAligned) {
+                        //alignTag();
+                    }
+                    positionPrevWord = pos;
+                }
+            }
+        }
+        if (!tagToBeAligned.isEmpty()) {
+            positionNextWord = Integer.MAX_VALUE;
+            for (Tag tag : tagToBeAligned) {
+                //alignTag();
+            }
+        }
+        return tagIndex2tagIndex;
+    }
+
+    private static void alignTag_old(int sourceTagIndex, Tag sourceTagToBeAligned, int translationPrevWordIndex,
+                                     int translationNextWordIndex, Tag[] translationTags,
+                                     Map<Integer, Double[]> sourceTag2possibleAlignments) {
+        if (translationPrevWordIndex > translationNextWordIndex) {
+            int tmp = translationPrevWordIndex;
+            translationPrevWordIndex = translationNextWordIndex;
+            translationNextWordIndex = tmp;
+        }
+
+        Double[] translationTagsScores = sourceTag2possibleAlignments.get(sourceTagIndex);
+        if (translationTagsScores == null) {
+            translationTagsScores = new Double[translationTags.length];
+            sourceTag2possibleAlignments.put(sourceTagIndex, translationTagsScores);
+        }
+
+        for (int index = 0; index < translationTags.length; index++) {
+            Tag translationTag = translationTags[index];
+
+        }
     }
 
     @Override
@@ -296,6 +528,15 @@ public class XMLTagProjector implements TextProcessor<Translation, Void> {
 
     public static void main(String[] args) throws Throwable {
         // SRC: hello <b>world</b><f />!
+
+        System.out.println(Double.NEGATIVE_INFINITY);
+        System.out.println(Double.NEGATIVE_INFINITY * 0);
+        System.out.println(Double.NEGATIVE_INFINITY * 1);
+        System.out.println(Double.NEGATIVE_INFINITY * 10);
+        System.out.println(Double.NEGATIVE_INFINITY / 10);
+        System.out.println(Double.NEGATIVE_INFINITY + 10);
+        System.out.println(Double.NEGATIVE_INFINITY - 10);
+
         Sentence source = new Sentence(new Word[]{
                 new Word("It", " "),
                 new Word("is", " "),

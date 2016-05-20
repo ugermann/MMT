@@ -16,27 +16,27 @@ public class MappingTag extends Tag implements Cloneable {
     /* true if the tag covers at least one position */
     protected boolean content;
 
-    protected MappingTag(String name, String text, boolean leftSpace, String rightSpace, int position, Type type, boolean dtd) {
-        super(name, text, leftSpace, rightSpace, position, type, dtd);
+    protected MappingTag(String name, String attributes, String text, boolean leftSpace, String rightSpace, int position, Type type, boolean dtd) {
+        super(name, attributes, text, leftSpace, rightSpace, position, type, dtd);
         this.link = null;
         this.content = false;
         this.coveredPositions = new ArrayList<>();
     }
 
-    protected MappingTag(String name, String text, boolean leftSpace, String rightSpace, int position, Type type, boolean dtd, MappingTag link, boolean content) {
-        super(name, text, leftSpace, rightSpace, position, type, dtd);
+    protected MappingTag(String name, String attributes, String text, boolean leftSpace, String rightSpace, int position, Type type, boolean dtd, MappingTag link, boolean content) {
+        super(name, attributes, text, leftSpace, rightSpace, position, type, dtd);
         this.link = link;
         this.content = content;
         this.coveredPositions = new ArrayList<>();
     }
 
     public static MappingTag fromTag(Tag other) {
-        return new MappingTag(other.getName(), other.getText(), other.hasLeftSpace(), other.getRightSpace(), other.getPosition(), other.getType(), other.isDTD());
+        return new MappingTag(other.getName(), other.getAttributes(), other.getText(), other.hasLeftSpace(), other.getRightSpace(), other.getPosition(), other.getType(), other.isDTD());
     }
 
     @Override
     public MappingTag clone() {
-        return new MappingTag(name, text, leftSpace, rightSpace, position, type, dtd, link, content);
+        return new MappingTag(name, attributes, text, leftSpace, rightSpace, position, type, dtd, link, content);
     }
 
     public MappingTag getLink() {

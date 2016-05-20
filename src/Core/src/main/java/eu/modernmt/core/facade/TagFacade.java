@@ -19,13 +19,25 @@ import java.util.concurrent.ExecutionException;
  */
 public class TagFacade {
 
-    public Translation project(String sentence, String translation, Locale sourceLanguage, Locale targetLanguage) throws TranslationException {
-        return project(sentence, translation, sourceLanguage, targetLanguage, null);
+    public Translation project(String sentence, String translation, Locale sourceLanguage, Locale targetLanguage)
+            throws TranslationException {
+        return project(sentence, translation, sourceLanguage, targetLanguage, null, null);
     }
 
-    public Translation project(String sentence, String translation, Locale sourceLanguage, Locale targetLanguage, Symmetrization.Strategy symmetrizationStrategy) throws TranslationException {
+    public Translation project(String sentence, String translation, Locale sourceLanguage, Locale targetLanguage, String hint)
+            throws TranslationException {
+        return project(sentence, translation, sourceLanguage, targetLanguage, hint, null);
+    }
+
+    public Translation project(String sentence, String translation, Locale sourceLanguage, Locale targetLanguage,
+                               Symmetrization.Strategy symmetrizationStrategy) throws TranslationException {
+        return project(sentence, translation, sourceLanguage, targetLanguage, null, symmetrizationStrategy);
+    }
+
+    public Translation project(String sentence, String translation, Locale sourceLanguage, Locale targetLanguage, String hint,
+                               Symmetrization.Strategy symmetrizationStrategy) throws TranslationException {
         boolean inverted = isLanguagesInverted(sourceLanguage, targetLanguage, ModernMT.node.getEngine());
-        ProjectTagsOperation operation = new ProjectTagsOperation(sentence, translation, inverted, symmetrizationStrategy);
+        ProjectTagsOperation operation = new ProjectTagsOperation(sentence, translation, inverted, hint, symmetrizationStrategy);
         try {
             return ModernMT.node.submit(operation).get();
         } catch (InterruptedException e) {

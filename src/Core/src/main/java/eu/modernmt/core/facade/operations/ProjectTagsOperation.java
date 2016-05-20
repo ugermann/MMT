@@ -26,12 +26,15 @@ public class ProjectTagsOperation extends Operation<Translation> {
     private String translationString;
     private final Symmetrization.Strategy symmetrizationStrategy;
     private final boolean inverted;
+    private String hint;
 
-    public ProjectTagsOperation(String sentence, String translation, boolean inverted, Symmetrization.Strategy symmetrizationStrategy) {
+    public ProjectTagsOperation(String sentence, String translation, boolean inverted, String hint,
+                                Symmetrization.Strategy symmetrizationStrategy) {
         this.sentenceString = sentence;
         this.translationString = translation;
-        this.symmetrizationStrategy = symmetrizationStrategy;
         this.inverted = inverted;
+        this.hint = hint;
+        this.symmetrizationStrategy = symmetrizationStrategy;
     }
 
     @Override

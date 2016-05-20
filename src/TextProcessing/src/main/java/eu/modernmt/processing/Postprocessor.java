@@ -1,13 +1,14 @@
 package eu.modernmt.processing;
 
 import eu.modernmt.model.Translation;
+import eu.modernmt.processing.AlignmentsInterpolator.AlignmentsInterpolatorProcessor;
 import eu.modernmt.processing.detokenizer.Detokenizer;
 import eu.modernmt.processing.detokenizer.Detokenizers;
 import eu.modernmt.processing.framework.*;
 import eu.modernmt.processing.numbers.NumericWordFactory;
 import eu.modernmt.processing.recaser.Recaser;
 import eu.modernmt.processing.xmessage.XMessageWordTransformer;
-import eu.modernmt.processing.xml.XMLTagProjector;
+import eu.modernmt.processing.xml.XMLTagProjector.XMLTagProjectorProcessor;
 import org.apache.commons.io.IOUtils;
 
 import java.io.Closeable;
@@ -20,21 +21,21 @@ import java.util.Locale;
  */
 public class Postprocessor implements Closeable {
 
-    private static final AlignmentsInterpolator AlignmentsInterpolator;
+    private static final AlignmentsInterpolatorProcessor AlignmentsInterpolatorProcessor;
     private static final WordTransformationFactory WordTransformationFactory;
     private static final WordTransformer WordTransformer;
     private static final Recaser Recaser;
-    private static final XMLTagProjector XMLTagProjector;
+    private static final XMLTagProjectorProcessor XMLTagProjectorProcessor;
 
     static {
-        AlignmentsInterpolator = new AlignmentsInterpolator();
+        AlignmentsInterpolatorProcessor = new AlignmentsInterpolatorProcessor();
         WordTransformationFactory = new WordTransformationFactory();
         WordTransformationFactory.addWordTransformer(NumericWordFactory.class);
         WordTransformationFactory.addWordTransformer(XMessageWordTransformer.class);
 
         WordTransformer = new WordTransformer();
         Recaser = new Recaser();
-        XMLTagProjector = new XMLTagProjector();
+        XMLTagProjectorProcessor = new XMLTagProjectorProcessor();
     }
 
     private final ProcessingPipeline<Translation, Void> pipelineWithDetokenization;
@@ -49,12 +50,12 @@ public class Postprocessor implements Closeable {
 
         return new ProcessingPipeline.Builder<Translation, Translation>()
                 .setThreads(threads)
-                .add(AlignmentsInterpolator)
+                .add(AlignmentsInterpolatorProcessor)
                 .add(detokenizer)
                 .add(WordTransformationFactory)
                 .add(WordTransformer)
                 .add(Recaser)
-                .add(XMLTagProjector)
+                .add(XMLTagProjectorProcessor)
                 .create();
     }
 

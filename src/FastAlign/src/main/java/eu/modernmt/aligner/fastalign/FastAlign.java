@@ -70,6 +70,10 @@ public class FastAlign implements Aligner {
 
         try {
             Runtime rt = Runtime.getRuntime();
+            if (logger.isDebugEnabled()) {
+                logger.debug("Executing: " + this.command);
+            }
+
             this.process = rt.exec(this.command, new String[]{
                     "LD_LIBRARY_PATH=" + Const.fs.lib
             });

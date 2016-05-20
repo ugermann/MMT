@@ -89,6 +89,7 @@ public class TagsProjection extends ObjectAction<Object> {
         public final boolean showDetails;
         public final Locale sourceLanguage;
         public final Locale targetLanguage;
+        public final String hint;
 
         public Params(RESTRequest req) throws ParameterParsingException {
             super(req);
@@ -107,6 +108,8 @@ public class TagsProjection extends ObjectAction<Object> {
             }
             this.sourceLanguage = Locale.forLanguageTag(getString("sl", false));
             this.targetLanguage = Locale.forLanguageTag(getString("tl", false));
+
+            this.hint = getString("hint", false);
         }
     }
 }
