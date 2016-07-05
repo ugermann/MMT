@@ -83,8 +83,9 @@ namespace JNIWrapper {
          * @param srcSent    vector of tokens of the source sentence
          * @param trgSent    vector of tokens of the target sentence
          * @param alignment  vector of aligned source-target token positions, zero-based indexing
+         * @param domain     identifier for the domain; if it does not exist, create a new domain
          */
-        virtual void AddSentencePair(const std::vector<std::string> &srcSent, const std::vector<std::string> &trgSent, const std::vector<std::pair<size_t, size_t>> &alignment) = 0;
+        virtual void AddSentencePair(const std::vector<std::string> &srcSent, const std::vector<std::string> &trgSent, const std::vector<std::pair<size_t, size_t>> &alignment, const std::string &domain) = 0;
 
         virtual ~MosesDecoder() { }
     };

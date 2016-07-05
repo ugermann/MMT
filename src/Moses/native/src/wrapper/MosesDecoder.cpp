@@ -35,7 +35,7 @@ namespace JNIWrapper {
                                         const std::map<std::string, float> *translationContext,
                                         size_t nbestListSize) override;
 
-        virtual void AddSentencePair(const std::vector<std::string> &srcSent, const std::vector<std::string> &trgSent, const std::vector<std::pair<size_t, size_t>> &alignment) override;
+        virtual void AddSentencePair(const std::vector<std::string> &srcSent, const std::vector<std::string> &trgSent, const std::vector<std::pair<size_t, size_t>> &alignment, const std::string &domain) override;
 
     private:
         sapt::IncrementalBitext *getBitext();
@@ -157,9 +157,9 @@ translation_t MosesDecoderImpl::translate(const std::string &text, uint64_t sess
 }
 
 void MosesDecoderImpl::AddSentencePair(const std::vector<std::string> &srcSent, const std::vector<std::string> &trgSent,
-                                       const std::vector<std::pair<size_t, size_t>> &alignment)
+                                       const std::vector<std::pair<size_t, size_t>> &alignment, const std::string &domain)
 {
-    getBitext()->AddSentencePair(srcSent, trgSent, alignment);
+    getBitext()->AddSentencePair(srcSent, trgSent, alignment, domain);
 }
 
 sapt::IncrementalBitext *MosesDecoderImpl::getBitext() {
