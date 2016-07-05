@@ -20,6 +20,8 @@ target_link_libraries(jnitest ${PROJECT_NAME})
 include_directories(src)
 include_directories(jheaders)
 
+add_subdirectory(tests)
+
 # External Libraries
 
 ## Boost
