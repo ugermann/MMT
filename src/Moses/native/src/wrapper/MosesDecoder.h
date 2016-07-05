@@ -77,6 +77,15 @@ namespace JNIWrapper {
                                         const std::map<std::string, float> *translationContext,
                                         size_t nbestListSize) = 0;
 
+        /**
+         * Add a training sentence pair.
+         *
+         * @param srcSent    vector of tokens of the source sentence
+         * @param trgSent    vector of tokens of the target sentence
+         * @param alignment  vector of aligned source-target token positions, zero-based indexing
+         */
+        virtual void AddSentencePair(const std::vector<std::string> &srcSent, const std::vector<std::string> &trgSent, const std::vector<std::pair<size_t, size_t>> &alignment) = 0;
+
         virtual ~MosesDecoder() { }
     };
 }

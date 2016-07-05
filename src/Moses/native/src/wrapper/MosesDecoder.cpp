@@ -6,6 +6,8 @@
 #include "JNITranslator.h"
 #include <moses/StaticData.h>
 #include <moses/FF/StatefulFeatureFunction.h>
+#include <moses/TranslationModel/UG/mm/mm_ibitext.h>
+#include <stdexcept>
 
 using namespace JNIWrapper;
 
@@ -32,6 +34,11 @@ namespace JNIWrapper {
         virtual translation_t translate(const std::string &text, uint64_t session,
                                         const std::map<std::string, float> *translationContext,
                                         size_t nbestListSize) override;
+
+        virtual void AddSentencePair(const std::vector<std::string> &srcSent, const std::vector<std::string> &trgSent, const std::vector<std::pair<size_t, size_t>> &alignment) override;
+
+    private:
+        sapt::IncrementalBitext *getBitext();
     };
 
 }
@@ -149,4 +156,18 @@ translation_t MosesDecoderImpl::translate(const std::string &text, uint64_t sess
     return translation;
 }
 
+void MosesDecoderImpl::AddSentencePair(const std::vector<std::string> &srcSent, const std::vector<std::string> &trgSent,
+                                       const std::vector<std::pair<size_t, size_t>> &alignment)
+{
+    getBitext()->AddSentencePair(srcSent, trgSent, alignment);
+}
 
+sapt::IncrementalBitext *MosesDecoderImpl::getBitext() {
+    const std::vector<const Moses::StatelessFeatureFunction *> &slf = Moses::StatelessFeatureFunction::GetStatelessFeatureFunctions();
+    for (size_t i = 0; i < slf.size(); ++i) {
+        const sapt::IncrementalBitext *feature = dynamic_cast<const sapt::IncrementalBitext *>(slf[i]);
+        if(feature)
+            return const_cast<sapt::IncrementalBitext *>(feature);
+    }
+    throw new std::runtime_error("MosesDecoderImpl::getBitext() failed to find IncrementalBitext instance. Mmsapt feature should implement this interface.");
+}
