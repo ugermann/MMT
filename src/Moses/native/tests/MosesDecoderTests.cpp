@@ -33,7 +33,7 @@ TEST(MosesDecoderTests, translate) {
   MosesDecoder *decoder = MosesDecoder::createInstance("res/moses.ini"); // note: can only run this once (static global feature registration!)
   //std::cerr << "hello world" << std::endl;
 
-  std::string text = "magyarul nem tudsz";
+  std::string text = "tudsz magyarul ?";
   translation_t translation;
 
   std::map<std::string, float> ibm;;
@@ -42,10 +42,12 @@ TEST(MosesDecoderTests, translate) {
   europarl["europarl"] = 1.f;
 
   translation = decoder->translate(text, 0, NULL, 0);
-  std::cout << "Translation 1: " << translation.text << "\n";
+  std::cerr << "Translation before AddSentencePair(): " << translation.text << "\n";
+  EXPECT_EQ("tudsz magyarul ?", translation.text) << "expect translation to consist of OOVs, since training source should not contain these Hungarian words";
 
   AddSentencePair(decoder);
 
   translation = decoder->translate(text, 0, NULL, 0);
-  std::cout << "Translation 2: " << translation.text << "\n";
+  std::cerr << "Translation after AddSentencePair(): " << translation.text << "\n";
+  EXPECT_EQ("si conosce ungherese ?", translation.text) << "expect these target-side words, since they are the only possible translation seen in training";
 }

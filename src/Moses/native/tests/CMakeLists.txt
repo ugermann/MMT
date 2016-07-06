@@ -11,8 +11,17 @@ set(TEST_SOURCES MosesDecoderTests.cpp)
 
 file(COPY ${RESOURCES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/res/)
 
-# ${CMAKE_SOURCE_DIR} == <MMT>/src/Moses/native
-set(ENGINE_PATH ${CMAKE_SOURCE_DIR}/../../../engines/default/)  # used in moses.template.ini, must have trailing /
+get_filename_component(SOURCE_BASE ${CMAKE_SOURCE_DIR} NAME)
+if(SOURCE_BASE MATCHES "^vendor$")
+    # make tests work in CLion
+    # ${CMAKE_SOURCE_DIR} == <MMT>/vendor
+    set(ENGINE_PATH ${CMAKE_SOURCE_DIR}/../engines/default/)  # used in moses.template.ini, must have trailing /
+else()
+    # the usual case
+    # ${CMAKE_SOURCE_DIR} == <MMT>/src/Moses/native
+    set(ENGINE_PATH ${CMAKE_SOURCE_DIR}/../../../engines/default/)  # used in moses.template.ini, must have trailing /
+endif()
+
 configure_file(res/moses.template.ini ${CMAKE_CURRENT_BINARY_DIR}/res/moses.ini)
 
 foreach(testSrc ${TEST_SOURCES})
