@@ -203,8 +203,17 @@ pack_hypothesis(const Moses::Manager& manager,
 {
   // target string
   ostringstream target;
+  size_t i = 0;
+  Moses::FactorType surfaceFactor = m_options->output.factor_order[0];
   BOOST_REVERSE_FOREACH(Hypothesis const* e, edges) {
-    manager.OutputSurface(target, *e); 
+    //manager.OutputSurface(target, *e); // prints trailing " " at the end of each sentence
+
+    TargetPhrase const& phrase = e->GetCurrTargetPhrase();
+    size_t size = phrase.GetSize();
+    for (size_t pos = 0; pos < size; pos++) {
+      target << (i == 0 ? "" : " ") << phrase.GetWord(pos).GetString(surfaceFactor);
+      i++;
+    }
   }
   XVERBOSE(1, "BEST TRANSLATION: " << *(manager.GetBestHypothesis()) 
 	   << std::endl);
