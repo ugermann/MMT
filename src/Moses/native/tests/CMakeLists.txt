@@ -2,12 +2,13 @@
 #set(TEST_SOURCES VocabTests.cpp CorpusTests.cpp TokenIndexTests.cpp BenchmarkTests.cpp)
 
 # maybe put this in some higher level?
-find_package(GTest REQUIRED)
+find_package(GTest)
 
+if(GTest_FOUND)
 
 #set(RESOURCES res/moses.template.ini)
 set(RESOURCES)
-set(TEST_SOURCES MosesDecoderTests.cpp)
+set(TEST_SOURCES MosesDecoderTests.cpp StoWriteTests.cpp)
 
 file(COPY ${RESOURCES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/res/)
 
@@ -29,5 +30,7 @@ foreach(testSrc ${TEST_SOURCES})
     add_executable(run${testName} ${testSrc})
     target_link_libraries(run${testName} jnimoses gtest gtest_main  tcmalloc profiler  ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} pthread)
 endforeach(testSrc)
+
+endif(GTest_FOUND)
 
 # ${Boost_LIBRARIES} ${GooglePerftools_LIBRARIES} moses
