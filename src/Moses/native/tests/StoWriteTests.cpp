@@ -27,7 +27,7 @@ void AddSentencePair(MosesDecoder *decoder) {
   decoder->AddSentencePair(src, trg, aln, "europarl");
 }
 
-TEST(MosesDecoderTests, translate) {
+TEST(MosesDecoderTests, translate_add) {
   std::unique_ptr<MosesDecoder> decoder(MosesDecoder::createInstance("res/moses.ini"));
 
   std::string text = "tudsz magyarul ?";

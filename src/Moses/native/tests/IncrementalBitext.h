@@ -19,13 +19,11 @@ namespace sto {
 class IncrementalBitext {
 public:
   /**
-   * Open an existing v1/v2 bitext as specified by base pathname and language pair.
+   * Open an existing bitext as specified by base pathname and language pair.
    *
    * @param base  base pathname prefix, e.g. "phrase_tables/model."
-   * @param L1    source language 2-letter code
-   * @param L2    target language 2-letter code
    */
-  virtual void open(std::string const base, std::string const L1, std::string const L2) = 0;
+  virtual void Open(const std::string &base) = 0;
 
   /**
    * Add a training sentence pair.
@@ -37,7 +35,8 @@ public:
    *
    * note: this same docstring exists in MMT project, src/Moses/native/src/wrapper/MosesDecoder.h
    */
-  virtual void AddSentencePair(const std::vector<std::string> &srcSent, const std::vector<std::string> &trgSent, const std::vector<std::pair<size_t, size_t>> &alignment, const std::string &domain) = 0;
+  virtual void AddSentencePair(const std::vector<std::string> &srcSent, const std::vector<std::string> &trgSent,
+                               const std::vector<std::pair<size_t, size_t>> &alignment, const std::string &domain) = 0;
 
   /**
    * Write to (empty) DB and disk.
@@ -45,6 +44,15 @@ public:
    * @param base  base pathname prefix, e.g. "phrase_tables/bitext."
    */
   virtual void Write(const std::string &base) = 0;
+};
+
+/**
+ * Interface for a class that has an IncrementalBitext.
+ * Implemented by Mmsapt to provide the IncrementalBitext interface to outside users.
+ */
+class HasIncrementalBitext {
+public:
+  virtual IncrementalBitext *GetIncrementalBitext() const = 0;
 };
 
 } // namespace sto
