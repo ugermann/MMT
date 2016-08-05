@@ -16,6 +16,7 @@ namespace JNIWrapper {
     class MosesDecoderImpl : public MosesDecoder {
         MosesServer::JNITranslator m_translator;
         std::vector<feature_t> m_features;
+        sto::IncrementalBitext *m_bitext = nullptr;
     public:
 
         MosesDecoderImpl(Moses::Parameter &param);
@@ -163,11 +164,16 @@ void MosesDecoderImpl::AddSentencePair(const std::vector<std::string> &srcSent, 
 }
 
 sto::IncrementalBitext *MosesDecoderImpl::getBitext() {
+    if(m_bitext)
+        return m_bitext;
+
     const std::vector<const Moses::StatelessFeatureFunction *> &slf = Moses::StatelessFeatureFunction::GetStatelessFeatureFunctions();
     for (size_t i = 0; i < slf.size(); ++i) {
-        const sto::IncrementalBitext *feature = dynamic_cast<const sto::IncrementalBitext *>(slf[i]);
-        if(feature)
-            return const_cast<sto::IncrementalBitext *>(feature);
+        const sto::HasIncrementalBitext *feature = dynamic_cast<const sto::HasIncrementalBitext *>(slf[i]);
+        if(feature) {
+            m_bitext = feature->GetIncrementalBitext();
+            return m_bitext;
+        }
     }
     throw new std::runtime_error("MosesDecoderImpl::getBitext() failed to find IncrementalBitext instance. Mmsapt feature should implement this interface.");
 }
