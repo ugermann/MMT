@@ -32,6 +32,10 @@ typedef struct {
     std::vector<std::pair<size_t, size_t> > alignment;
 } translation_t;
 
+namespace sto {
+    class IncrementalBitext;
+}
+
 namespace JNIWrapper {
     class MosesDecoder {
     public:
@@ -86,6 +90,9 @@ namespace JNIWrapper {
          * @param domain     identifier for the domain; if it does not exist, create a new domain
          */
         virtual void AddSentencePair(const std::vector<std::string> &srcSent, const std::vector<std::string> &trgSent, const std::vector<std::pair<size_t, size_t>> &alignment, const std::string &domain) = 0;
+
+        // for testing
+        virtual sto::IncrementalBitext *GetIncrementalBitext() = 0;
 
         virtual ~MosesDecoder() { }
     };

@@ -9,6 +9,8 @@
 #include <iostream>
 
 #include "wrapper/MosesDecoder.h"
+#include "IncrementalBitext.h"
+#include "filesystem.h"
 
 using namespace JNIWrapper;
 
@@ -24,9 +26,10 @@ void AddSentencePair(MosesDecoder *decoder) {
   decoder->AddSentencePair(src, trg, aln, "europarl");
 }
 
+MosesDecoder *decoder = MosesDecoder::createInstance("res/moses.ini"); // note: can only run this once (static global feature registration!)
+
 TEST(MosesDecoderTests, translate) {
-  MosesDecoder *decoder = MosesDecoder::createInstance("res/moses.ini"); // note: can only run this once (static global feature registration!)
-  //std::cerr << "hello world" << std::endl;
+  //MosesDecoder *decoder = MosesDecoder::createInstance("res/moses.ini"); // note: can only run this once (static global feature registration!)
 
   std::string text = "tudsz magyarul ?";
   translation_t translation;
@@ -45,4 +48,17 @@ TEST(MosesDecoderTests, translate) {
   translation = decoder->translate(text, 0, NULL, 0);
   std::cerr << "Translation after AddSentencePair(): " << translation.text << "\n";
   EXPECT_EQ("si conosce ungherese ?", translation.text) << "expect these target-side words, since they are the only possible translation seen in training";
+}
+
+
+TEST(MosesDecoderTests, convert_bitext) {
+  //MosesDecoder *decoder = MosesDecoder::createInstance("res/moses.ini"); // note: can only run this once (static global feature registration!)
+
+  sto::IncrementalBitext *bitext = decoder->GetIncrementalBitext();
+
+  std::string base = "res/MosesDecoderTests";
+  sto::remove_all(base);
+  sto::create_directory(base);
+
+  bitext->Write(base + "/bitext.");
 }

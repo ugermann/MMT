@@ -38,8 +38,7 @@ namespace JNIWrapper {
 
         virtual void AddSentencePair(const std::vector<std::string> &srcSent, const std::vector<std::string> &trgSent, const std::vector<std::pair<size_t, size_t>> &alignment, const std::string &domain) override;
 
-    private:
-        sto::IncrementalBitext *getBitext();
+        virtual sto::IncrementalBitext *GetIncrementalBitext() override;
     };
 
 }
@@ -160,10 +159,10 @@ translation_t MosesDecoderImpl::translate(const std::string &text, uint64_t sess
 void MosesDecoderImpl::AddSentencePair(const std::vector<std::string> &srcSent, const std::vector<std::string> &trgSent,
                                        const std::vector<std::pair<size_t, size_t>> &alignment, const std::string &domain)
 {
-    getBitext()->AddSentencePair(srcSent, trgSent, alignment, domain);
+    GetIncrementalBitext()->AddSentencePair(srcSent, trgSent, alignment, domain);
 }
 
-sto::IncrementalBitext *MosesDecoderImpl::getBitext() {
+sto::IncrementalBitext *MosesDecoderImpl::GetIncrementalBitext() {
     if(m_bitext)
         return m_bitext;
 
