@@ -20,6 +20,7 @@ namespace JNIWrapper {
     public:
 
         MosesDecoderImpl(Moses::Parameter &param);
+        virtual ~MosesDecoderImpl();
 
         virtual std::vector<feature_t> getFeatures() override;
 
@@ -84,6 +85,11 @@ MosesDecoderImpl::MosesDecoderImpl(Moses::Parameter &param) : m_features() {
 
         m_features.push_back(f);
     }
+}
+
+MosesDecoderImpl::~MosesDecoderImpl() {
+    // globally destroy all feature functions
+    Moses::FeatureFunction::Destroy();
 }
 
 std::vector<feature_t> MosesDecoderImpl::getFeatures() {

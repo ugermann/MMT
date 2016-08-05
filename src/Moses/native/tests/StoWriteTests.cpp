@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
 #include <iostream>
 
 #include "wrapper/MosesDecoder.h"
@@ -26,10 +27,8 @@ void AddSentencePair(MosesDecoder *decoder) {
   decoder->AddSentencePair(src, trg, aln, "europarl");
 }
 
-MosesDecoder *decoder = MosesDecoder::createInstance("res/moses.ini"); // note: can only run this once (static global feature registration!)
-
 TEST(MosesDecoderTests, translate) {
-  //MosesDecoder *decoder = MosesDecoder::createInstance("res/moses.ini"); // note: can only run this once (static global feature registration!)
+  std::unique_ptr<MosesDecoder> decoder(MosesDecoder::createInstance("res/moses.ini"));
 
   std::string text = "tudsz magyarul ?";
   translation_t translation;
@@ -43,7 +42,7 @@ TEST(MosesDecoderTests, translate) {
   std::cerr << "Translation before AddSentencePair(): " << translation.text << "\n";
   EXPECT_EQ("tudsz magyarul ?", translation.text) << "expect translation to consist of OOVs, since training source should not contain these Hungarian words";
 
-  AddSentencePair(decoder);
+  AddSentencePair(decoder.get());
 
   translation = decoder->translate(text, 0, NULL, 0);
   std::cerr << "Translation after AddSentencePair(): " << translation.text << "\n";
@@ -52,7 +51,7 @@ TEST(MosesDecoderTests, translate) {
 
 
 TEST(MosesDecoderTests, convert_bitext) {
-  //MosesDecoder *decoder = MosesDecoder::createInstance("res/moses.ini"); // note: can only run this once (static global feature registration!)
+  std::unique_ptr<MosesDecoder> decoder(MosesDecoder::createInstance("res/moses.ini"));
 
   sto::IncrementalBitext *bitext = decoder->GetIncrementalBitext();
 
