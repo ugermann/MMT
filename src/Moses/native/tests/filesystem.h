@@ -20,6 +20,10 @@ void create_directory(const std::string &p) {
   boost::filesystem::create_directory(p);
 }
 
+void copy_file(const std::string &from, const std::string &to) {
+  boost::filesystem::copy_file(from, to, boost::filesystem::copy_option::overwrite_if_exists);
+}
+
 } // namespace sto
 
 #endif //FILESYSTEM_H

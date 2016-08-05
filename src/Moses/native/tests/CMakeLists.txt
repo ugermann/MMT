@@ -24,6 +24,7 @@ else()
 endif()
 
 configure_file(res/moses.template.ini ${CMAKE_CURRENT_BINARY_DIR}/res/moses.ini)
+configure_file(res/new_bitext_moses.template.ini ${CMAKE_CURRENT_BINARY_DIR}/res/new_bitext_moses.ini)
 
 foreach(testSrc ${TEST_SOURCES})
     get_filename_component(testName ${testSrc} NAME_WE)

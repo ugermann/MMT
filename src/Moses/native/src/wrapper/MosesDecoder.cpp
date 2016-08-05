@@ -90,6 +90,7 @@ MosesDecoderImpl::MosesDecoderImpl(Moses::Parameter &param) : m_features() {
 MosesDecoderImpl::~MosesDecoderImpl() {
     // globally destroy all feature functions
     Moses::FeatureFunction::Destroy();
+    Moses::StaticData::Destroy();
 }
 
 std::vector<feature_t> MosesDecoderImpl::getFeatures() {
