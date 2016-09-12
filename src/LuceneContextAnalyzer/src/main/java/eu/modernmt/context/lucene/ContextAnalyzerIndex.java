@@ -41,7 +41,6 @@ public class ContextAnalyzerIndex implements Closeable, AutoCloseable {
 
     private Directory indexDirectory;
     private Analyzer analyzer;
-    private IndexWriter indexWriter;
     private DirectoryReader indexReader;
 
     public ContextAnalyzerIndex(File indexPath) throws IOException {
@@ -51,19 +50,6 @@ public class ContextAnalyzerIndex implements Closeable, AutoCloseable {
         this.indexDirectory = FSDirectory.open(indexPath);
         this.analyzer = new CorpusAnalyzer();
 
-        // Index writer setup
-        IndexWriterConfig indexConfig = new IndexWriterConfig(Version.LUCENE_4_10_4, this.analyzer);
-        indexConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
-        indexConfig.setSimilarity(new DefaultSimilarity() {
-
-            @Override
-            public float lengthNorm(FieldInvertState state) {
-                return 1.f;
-            }
-
-        });
-
-        this.indexWriter = new IndexWriter(this.indexDirectory, indexConfig);
     }
 
     private synchronized IndexReader getIndexReader() throws ContextAnalyzerException {
@@ -99,32 +85,59 @@ public class ContextAnalyzerIndex implements Closeable, AutoCloseable {
         return this.indexReader;
     }
 
+    private IndexWriter getIndexWriter() throws ContextAnalyzerException {
+        IndexWriterConfig indexConfig
+            = new IndexWriterConfig(Version.LUCENE_4_10_4, this.analyzer);
+        indexConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
+        indexConfig.setSimilarity(new DefaultSimilarity() {
+
+            @Override
+            public float lengthNorm(FieldInvertState state) {
+                return 1.f;
+            }
+
+        });
+
+        IndexWriter indexWriter;
+        try {
+            indexWriter = new IndexWriter(this.indexDirectory, indexConfig);
+        } catch (IOException e){
+            throw new ContextAnalyzerException("Could not open Index Writer", e);
+        }
+        return indexWriter;
+    }
+    
     public void add(Corpus corpus) throws ContextAnalyzerException {
         this.add(Collections.singleton(corpus));
     }
 
     public void add(Collection<? extends Corpus> corpora) throws ContextAnalyzerException {
+        IndexWriter indexWriter = this.getIndexWriter();
         for (Corpus corpus : corpora) {
             logger.info("Adding to index document " + corpus);
 
             try {
-                this.indexWriter.addDocument(DocumentBuilder.createDocument(corpus));
+                indexWriter.addDocument(DocumentBuilder.createDocument(corpus));
             } catch (IOException e) {
                 throw new ContextAnalyzerException("Failed to add document " + corpus.getName() + " to index", e);
             }
         }
 
         try {
-            this.indexWriter.commit();
+            indexWriter.commit();
+            indexWriter.close();
         } catch (IOException e) {
             throw new ContextAnalyzerException("Unable to commit changes to context analyzer index", e);
         }
+
     }
 
     public void clear() throws ContextAnalyzerException {
+        IndexWriter indexWriter = this.getIndexWriter();
         try {
-            this.indexWriter.deleteAll();
-            this.indexWriter.commit();
+            indexWriter.deleteAll();
+            indexWriter.commit();
+            indexWriter.close();
         } catch (IOException e) {
             throw new ContextAnalyzerException("Unable to clear context analyzer index", e);
         }
@@ -216,7 +229,6 @@ public class ContextAnalyzerIndex implements Closeable, AutoCloseable {
     @Override
     public void close() throws IOException {
         IOUtils.closeQuietly(this.indexReader);
-        IOUtils.closeQuietly(this.indexWriter);
         IOUtils.closeQuietly(this.indexDirectory);
     }
 
