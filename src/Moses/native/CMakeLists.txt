@@ -12,7 +12,7 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-add_library(${PROJECT_NAME} SHARED ${WRAPPER_SRC} ${JNI_SRC})
+add_library(${PROJECT_NAME} STATIC ${WRAPPER_SRC} ${JNI_SRC})
 
 add_executable(jnitest src/main.cpp)
 target_link_libraries(jnitest ${PROJECT_NAME})
@@ -23,15 +23,16 @@ include_directories(jheaders)
 # External Libraries
 
 ## Boost
-set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
+set(Boost_USE_STATIC_RUNTIME ON)
 
-find_package(Boost 1.55.0 COMPONENTS filesystem thread system program_options iostreams)
+find_package(Boost 1.58.0 COMPONENTS filesystem thread system program_options iostreams)
+find_package(ZLIB REQUIRED)
 
 if (Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
+    target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} ${ZLIB_LIBRARIES})
 else (Boost_FOUND)
     message(FATAL_ERROR "Could not locate Boost. Check if BOOST_ROOT is defined in your system.")
 endif (Boost_FOUND)
@@ -55,10 +56,12 @@ find_package(Moses REQUIRED)
 
 add_definitions(-DMAX_NUM_FACTORS=4)
 add_definitions(-DWITH_THREADS=1)
+add_definitions(-DHAVE_ZLIB=1)
+
 #add_definitions(-DHAVE_XMLRPC_C=0)  # note: even defining this to 0 triggers #ifdef ...
 #add_definitions(-DTRACE_ENABLE)  # add this to enable verbose moses output in general (otherwise, not even --verbose level will help)
 include_directories(${Moses_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} ${Moses_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${Moses_LIBRARIES} ${ZLIB_LIBRARIES})
 
 install(TARGETS ${PROJECT_NAME} DESTINATION lib)
 #install(TARGETS jnitest DESTINATION bin)  # we do not install that. no need for it in production.
