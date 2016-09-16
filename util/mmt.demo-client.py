@@ -42,7 +42,6 @@ class Session:
       self.handler  = handler
       if context:
          C = self.mmt.get_context_s(context)
-         print C
          S = self.mmt.create_session(C)
          self.session = S['id']
       else:
