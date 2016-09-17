@@ -118,41 +118,23 @@ def print_job(j):
 if __name__ == "__main__":
 
    text = [line.strip() for line in sys.stdin]
-   session = Session("localhost:8045", context = " ".join(text[:50]))
+
+   parser = ArgumentParser()
+   parser.add_argument("server")
+   parser.add_argument("-d", "--debug", default=True,
+                       action="store_true", help="debug")
+   args = parser.parse_args(sys.argv[1:])
+
+   session = Session(args.server, context = " ".join(text[:50]))
    jobs = []
    for i in xrange(len(text)):
       while len(jobs) == 250 or (len(jobs) and not jobs[0].thread.is_alive()):
          print_job(jobs.pop(0))
+         pass
       jobs.append(Job(session,i,text[i]))
-         
+      
    for j in jobs:
       print_job(j)
-   
-   # parser = ArgumentParser()
-   # parser.add_argument("server")
-   # parser.add_argument\
-   #    ("-d", "--debug", default=True, action="store_true", help="debug")
-
-   # args = parser.parse_args(sys.argv[1:])
-
-   # server = "http://%s/translate"%args.server
-   # jobs = []
-   # sid = 0
-   # source = sys.stdin.readlines()
-   # param = {'context' : " ".join([line.strip().decode('utf-8') for line in source])[:1000] }
-   # for line in source:
-   #    while len(jobs) and (jobs[0].thread.is_alive() == False or threading.activeCount() > 64):
-   #       j = jobs.pop(0)
-   #       print_job(j)
-   #       pass
-   #    param['q'] = line.strip()
-   #    j = job(sid,param)
-   #    jobs.append(j)
-   #    sid += 1
-   #    jobs.append(job(sid, { 'q' : line.strip() }))
-   #    sid += 1
-   #    pass
-   # for j in jobs:
-   #    print_job(j)
+      pass
    
    
